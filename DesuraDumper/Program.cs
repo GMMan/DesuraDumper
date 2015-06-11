@@ -29,6 +29,7 @@ namespace DesuraDumper
 			bool exportDownloads = false;
 			bool exportKeys = false;
 			bool exportLinks = false;
+			bool omitLinksComments = false;
 
 			// Argument parser
 			foreach (string arg in args) {
@@ -93,6 +94,11 @@ namespace DesuraDumper
 						if (exportLinks)
 							argError ("Export links option specified more than once.");
 						exportLinks = true;
+						break;
+					case "/o":
+						if (omitLinksComments)
+							argError ("Omit links file comments option specified more than once.");
+						omitLinksComments = true;
 						break;
 					case "/?":
 					case "/h":
@@ -184,7 +190,7 @@ namespace DesuraDumper
 						}
 					}
 
-					List<string> links = GetCdnLinks (downloadsDb, wc);
+					List<string> links = GetCdnLinks (downloadsDb, wc, !omitLinksComments);
 
 					Console.Error.WriteLine ("Saving links to file...");
 					using (StreamWriter sw = File.CreateText (linksPath)) {
@@ -202,7 +208,7 @@ namespace DesuraDumper
 			}
 		}
 
-		static List<string> GetCdnLinks (List<DownloadsView> downloads, CookieAwareWebClient wc)
+		static List<string> GetCdnLinks (List<DownloadsView> downloads, CookieAwareWebClient wc, bool addComments = true)
 		{
 			List<string> links = new List<string> ();
 			for (int i = 0; i < downloads.Count; ++i) {
@@ -212,6 +218,8 @@ namespace DesuraDumper
 				List<string> presentNames = new List<string> (view.Downloads.Select (v => v.Name + "\t" + v.Platform));
 				List<Tuple<string, string, string>> prodDownloads = GetDownloads (view.Slug, view.BranchId, wc);
 				foreach (Tuple<string, string, string> tuple in prodDownloads.Where(t => presentNames.Contains(t.Item1 + "\t" + t.Item2))) {
+					if (addComments)
+						links.Add (string.Format ("# {0} - {1} ({2})", view.Name, tuple.Item1, tuple.Item2));
 					links.Add (GetRedirectUrl (tuple.Item3, wc.CookieContainer));
 				}
 			}
@@ -379,7 +387,7 @@ namespace DesuraDumper
 
 		static void usage ()
 		{
-			Console.WriteLine ("{0} [/i=dbPath] [/d=downloadsPath] [/k=keysPath] [/l=linksPath] [/t=tokensPath] [/xd] [/xk[=filter]] [/xl]", Path.GetFileNameWithoutExtension (System.Reflection.Assembly.GetExecutingAssembly ().Location));
+			Console.WriteLine ("{0} [/i=dbPath] [/d=downloadsPath] [/k=keysPath] [/l=linksPath] [/t=tokensPath] [/xd] [/xk[=filter]] [/xl [/o]]", Path.GetFileNameWithoutExtension (System.Reflection.Assembly.GetExecutingAssembly ().Location));
 			Console.WriteLine ("\t/i\tPath to main database. Default: database.yml");
 			Console.WriteLine ("\t/d\tPath to downloads database. Default: downloads.yml");
 			Console.WriteLine ("\t/k\tPath to keys database. Default: keys.yml");
@@ -388,6 +396,7 @@ namespace DesuraDumper
 			Console.WriteLine ("\t/xd\tExport to downloads database. Main database must exist.");
 			Console.WriteLine ("\t/xk\tExport to keys database. Main database must exist. A regex filter can also be specified to export certain types of keys.");
 			Console.WriteLine ("\t/xl\tExport to CDN links file. Main database or downloads database must exist.");
+			Console.WriteLine ("\t/o\tOmit comments when writing to links file (for e.g. wget).");
 			Console.WriteLine ();
 			Console.WriteLine ("Provide no arguments to create main, downloads, and keys database from your Desura collection.");
 			Environment.Exit (0);
