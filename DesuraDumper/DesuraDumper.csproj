@@ -52,7 +52,6 @@
     <Compile Include="NamePlatformStringTuple.cs" />
     <Compile Include="KeysView.cs" />
     <Compile Include="DownloadsView.cs" />
-    <Compile Include="StringExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
