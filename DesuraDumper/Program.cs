@@ -118,7 +118,7 @@ namespace DesuraDumper
 			if (tokensPath == null)
 				tokensPath = "tokens.txt";
 			if (keysExportFilter == null)
-				keysExportFilter = "*";
+				keysExportFilter = ".*";
 
 			// Argument validation. Oh boy...
 			if ((exportKeys || exportDownloads) && !File.Exists (dbPath))
@@ -404,12 +404,12 @@ namespace DesuraDumper
 		{
 			// Modified for UNIX LF
 			const int ENTER = 10 , BACKSP= 8 , CTRLBACKSP= 127;
-			int[] FILTERED = { 0, 27, 9, 13 /*, 32 space, if you care */ }; // const
+			int[] FILTERED = { 0, 27, 9, 10, 13 /*, 32 space, if you care */ }; // const
 
 			var pass = new Stack<char> ();
 			char chr = (char)0;
 
-			while ((chr = System.Console.ReadKey (true).KeyChar) != ENTER) {
+			while ((chr = System.Console.ReadKey (true).KeyChar) != ENTER && chr != 13) {
 				if (chr == BACKSP || chr == 0) { // For some reason on my Ubuntu terminal backspace is a null char
 					if (pass.Count > 0) {
 						System.Console.Write ("\b \b");

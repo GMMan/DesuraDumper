@@ -17,7 +17,7 @@ namespace DesuraDumper
 			Keys = new List<NameKeyStringTuple>();
 		}
 
-		public static List<KeysView> CreateCollectionFromProducts(List<ProductInfo> products, string regexString = "*")
+		public static List<KeysView> CreateCollectionFromProducts(List<ProductInfo> products, string regexString = ".*")
 		{
 			List<KeysView> views = new List<KeysView>();
 			Regex regex = new Regex (regexString);
