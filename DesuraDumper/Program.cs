@@ -338,7 +338,7 @@ namespace DesuraDumper
 				string pass = ReadPassword ();
 				if (username.Length == 0) {
 					Console.WriteLine ("Empty email address");
-					return true;
+					return false;
 				}
 				if (pass.Length == 0) {
 					Console.WriteLine ("Empty password");
