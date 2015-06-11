@@ -25,6 +25,7 @@ namespace DesuraDumper
 			string keysPath = null;
 			string linksPath = null;
 			string tokensPath = null;
+			string keysExportFilter = null;
 			bool exportDownloads = false;
 			bool exportKeys = false;
 			bool exportLinks = false;
@@ -85,6 +86,8 @@ namespace DesuraDumper
 						if (exportKeys)
 							argError ("Export keys database option specified more than once.");
 						exportKeys = true;
+						if (argSplit.Length == 2)
+							keysExportFilter = argSplit [1];
 						break;
 					case "/xl":
 						if (exportLinks)
@@ -114,6 +117,8 @@ namespace DesuraDumper
 				linksPath = "downloadLinks.txt";
 			if (tokensPath == null)
 				tokensPath = "tokens.txt";
+			if (keysExportFilter == null)
+				keysExportFilter = "*";
 
 			// Argument validation. Oh boy...
 			if ((exportKeys || exportDownloads) && !File.Exists (dbPath))
@@ -165,7 +170,7 @@ namespace DesuraDumper
 				if (exportKeys) {
 					Console.Error.WriteLine ("Exporting keys database...");
 					using (StreamWriter sw = File.CreateText (keysPath)) {
-						KeysView.SerializeCollection (KeysView.CreateCollectionFromProducts (products), sw);
+						KeysView.SerializeCollection (KeysView.CreateCollectionFromProducts (products, keysExportFilter), sw);
 						sw.Flush ();
 					}
 				}
@@ -374,14 +379,14 @@ namespace DesuraDumper
 
 		static void usage ()
 		{
-			Console.WriteLine ("{0} [/i=dbPath] [/d=downloadsPath] [/k=keysPath] [/l=linksPath] [/t=tokensPath] [/xd] [/xk] [/xl]", Path.GetFileNameWithoutExtension (System.Reflection.Assembly.GetExecutingAssembly ().Location));
+			Console.WriteLine ("{0} [/i=dbPath] [/d=downloadsPath] [/k=keysPath] [/l=linksPath] [/t=tokensPath] [/xd] [/xk[=filter]] [/xl]", Path.GetFileNameWithoutExtension (System.Reflection.Assembly.GetExecutingAssembly ().Location));
 			Console.WriteLine ("\t/i\tPath to main database. Default: database.yml");
 			Console.WriteLine ("\t/d\tPath to downloads database. Default: downloads.yml");
 			Console.WriteLine ("\t/k\tPath to keys database. Default: keys.yml");
 			Console.WriteLine ("\t/l\tPath to CDN links file. Default: downloadLinks.txt");
 			Console.WriteLine ("\t/t\tPath to tokens file. Default: tokens.txt");
 			Console.WriteLine ("\t/xd\tExport to downloads database. Main database must exist.");
-			Console.WriteLine ("\t/xk\tExport to keys database. Main database must exist.");
+			Console.WriteLine ("\t/xk\tExport to keys database. Main database must exist. A regex filter can also be specified to export certain types of keys.");
 			Console.WriteLine ("\t/xl\tExport to CDN links file. Main database or downloads database must exist.");
 			Console.WriteLine ();
 			Console.WriteLine ("Provide no arguments to create main, downloads, and keys database from your Desura collection.");
