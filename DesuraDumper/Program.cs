@@ -289,6 +289,7 @@ namespace DesuraDumper
 			HttpWebRequest request = (HttpWebRequest)WebRequest.CreateHttp (url);
 			request.AllowAutoRedirect = false;
 			request.CookieContainer = cookies;
+			request.Method = WebRequestMethods.Http.Head;
 			using (HttpWebResponse response = (HttpWebResponse)request.GetResponse ()) {
 				if (response.StatusCode == HttpStatusCode.Found || response.StatusCode == HttpStatusCode.Moved)
 					return response.Headers [HttpResponseHeader.Location];
