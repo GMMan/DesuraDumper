@@ -8,12 +8,16 @@ using System.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CsQuery;
+using System.Threading;
 
 namespace DesuraDumper
 {
 	class MainClass
 	{
-		public static void Main (string[] args)
+        public static readonly int Retries = int.Parse(System.Configuration.ConfigurationManager.AppSettings["RetryCount"]);
+        public static readonly int RetryDelay = int.Parse(System.Configuration.ConfigurationManager.AppSettings["RetryDelay"]);
+
+        public static void Main (string[] args)
 		{
 			Console.WriteLine ("Desura Collection Dumper");
 			Console.WriteLine ("(C) cyanic");
@@ -305,8 +309,21 @@ namespace DesuraDumper
 		static List<Tuple<string, string, string>> GetDownloads (string slug, int branchId, WebClient wc)
 		{
 			List<Tuple<string, string, string>> downloads = new List<Tuple<string, string, string>> ();
-			// Get downloads
-			string downloadsPage = wc.DownloadString (string.Format ("http://www.desura.com/games/{0}/download/{1}", slug, branchId));
+            // Get downloads
+            string downloadsPage = null;
+            for (int i = 0; i < Retries && downloadsPage == null; i++)
+            {
+                try
+                {
+                    downloadsPage = wc.DownloadString(string.Format("http://www.desura.com/games/{0}/download/{1}", slug, branchId));
+                }
+                catch (WebException)
+                {
+                    if (i >= Retries - 1) throw;
+                    Console.WriteLine("Request {0}/{1} failed, retrying in {2} milliseconds.", i + 1, Retries, RetryDelay);
+                    Thread.Sleep(RetryDelay);
+                } 
+            }
 			CQ csqDownload = downloadsPage;
 			CQ dSearch = csqDownload ["span.action:contains(Download)"];
 
@@ -340,8 +357,21 @@ namespace DesuraDumper
 
 		static void AddKeysToProduct (ProductInfo product, WebClient wc)
 		{
-			// Get keys
-			string keysPage = wc.DownloadString (string.Format ("http://www.desura.com/games/{0}/keys", product.Slug));
+            // Get keys
+            string keysPage = null;
+            for (int i = 0; i < Retries && keysPage == null; i++)
+            {
+                try
+                {
+                    keysPage = wc.DownloadString(string.Format("http://www.desura.com/games/{0}/keys", product.Slug));
+                }
+                catch (WebException)
+                {
+                    if (i >= Retries - 1) throw;
+                    Console.WriteLine("Request {0}/{1} failed, retrying in {2} milliseconds.", i + 1, Retries, RetryDelay);
+                    Thread.Sleep(RetryDelay);
+                } 
+            }
 			CQ csqKeys = keysPage;
 			CQ kSearch = csqKeys ["span.price:contains(Select),span.price:contains(Get)"];
 			foreach (var kSpanE in kSearch) {
