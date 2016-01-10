@@ -211,6 +211,7 @@ namespace DesuraDumper
 		static List<string> GetCdnLinks (List<DownloadsView> downloads, CookieAwareWebClient wc, bool addComments = true)
 		{
 			List<string> links = new List<string> ();
+			List<string> retryLinks = new List<string>();
 			for (int i = 0; i < downloads.Count; ++i) {
 				DownloadsView view = downloads [i];
 				Console.WriteLine ("[{0}/{1}] {2}: Getting CDN links", i + 1, downloads.Count, view.Name);
@@ -220,10 +221,49 @@ namespace DesuraDumper
 				foreach (Tuple<string, string, string> tuple in prodDownloads.Where(t => presentNames.Contains(t.Item1 + "\t" + t.Item2))) {
 					if (addComments)
 						links.Add (string.Format ("# {0} - {1} ({2})", view.Name, tuple.Item1, tuple.Item2));
-					links.Add (GetRedirectUrl (tuple.Item3, wc.CookieContainer));
+					try
+					{
+						links.Add (GetRedirectUrl (tuple.Item3, wc.CookieContainer));
+					}
+					catch (WebException ex)
+					{
+						Console.WriteLine("Caught exception while trying to get CDN link: {0}", ex.Message);
+						Console.WriteLine("Adding to retry list.");
+						retryLinks.Add(tuple.Item3);
+					}
 				}
 			}
 
+			int maxRetryCount = 5;
+			for (int i = 0; retryLinks.Count > 0 && i < maxRetryCount; ++i)
+			{
+				Console.WriteLine("Retrying failed links ({0}/{1})", i + 1, maxRetryCount);
+				int j = 0;
+				int linksCount = retryLinks.Count;
+				retryLinks.RemoveAll(link => {
+					Console.WriteLine("[{0}/{1}]: Trying {2}", ++j, linksCount, link);
+					try
+					{
+						// No comments to add since I didn't store that...
+						links.Add(GetRedirectUrl(link, wc.CookieContainer));
+					}
+					catch (WebException ex)
+					{
+						Console.WriteLine("Caught exception while retrying to get CDN link: {0}", ex.Message);
+						return false;
+					}
+					return true;
+				});
+			}
+
+			if (retryLinks.Count > 0)
+			{
+				Console.WriteLine("The following links could not be successfully converted to CDN links:");
+				foreach (string l in retryLinks)
+				{
+					Console.WriteLine(l);
+				}
+			}
 
 			return links;
 		}
