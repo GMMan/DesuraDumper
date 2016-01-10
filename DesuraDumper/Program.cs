@@ -14,8 +14,8 @@ namespace DesuraDumper
 {
 	class MainClass
 	{
-        public static readonly int Retries = int.Parse(System.Configuration.ConfigurationManager.AppSettings["RetryCount"]);
-        public static readonly int RetryDelay = int.Parse(System.Configuration.ConfigurationManager.AppSettings["RetryDelay"]);
+        public static int Retries = 5;
+        public static int RetryDelay = 2000;
 
         public static void Main (string[] args)
 		{
@@ -140,6 +140,16 @@ namespace DesuraDumper
 				exportKeys = exportDownloads = true;
 			}
 
+			// Load config values
+			if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["RetryCount"], out Retries))
+			{
+				Console.WriteLine("Can't parse RetryCount config value, using default.");
+			}
+			if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["RetryDelay"], out RetryDelay))
+			{
+				Console.WriteLine("Can't parse RetryDelay config value, using default.");
+			}
+
 			try {
 				CookieAwareWebClient wc = new CookieAwareWebClient () { Encoding = Encoding.UTF8 };
 
@@ -238,12 +248,12 @@ namespace DesuraDumper
 				}
 			}
 
-			int maxRetryCount = 5;
-			for (int i = 0; retryLinks.Count > 0 && i < maxRetryCount; ++i)
+			for (int i = 0; retryLinks.Count > 0 && i < Retries; ++i)
 			{
-				Console.WriteLine("Retrying failed links ({0}/{1})", i + 1, maxRetryCount);
+				Console.WriteLine("Retrying failed links ({0}/{1}) in {2} milliseconds", i + 1, Retries, RetryDelay);
 				int j = 0;
 				int linksCount = retryLinks.Count;
+				Thread.Sleep(RetryDelay);
 				retryLinks.RemoveAll(link => {
 					Console.WriteLine("[{0}/{1}]: Trying {2}", ++j, linksCount, link);
 					try
