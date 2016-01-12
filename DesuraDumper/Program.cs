@@ -16,6 +16,7 @@ namespace DesuraDumper
 	{
         public static int Retries = 5;
         public static int RetryDelay = 2000;
+		public static bool KeepAlive = true;
 
         public static void Main (string[] args)
 		{
@@ -149,9 +150,13 @@ namespace DesuraDumper
 			{
 				Console.WriteLine("Can't parse RetryDelay config value, using default.");
 			}
+			if (!bool.TryParse(System.Configuration.ConfigurationManager.AppSettings["KeepAlive"], out KeepAlive))
+			{
+				Console.WriteLine("Can't parse KeepAlive config value, using default.");
+			}
 
 			try {
-				CookieAwareWebClient wc = new CookieAwareWebClient () { Encoding = Encoding.UTF8 };
+				CookieAwareWebClient wc = new CookieAwareWebClient () { Encoding = Encoding.UTF8, KeepAlive = KeepAlive };
 
 				if (exportLinks || !File.Exists (dbPath)) {
 					if (!PromptAndLogIn (wc, tokensPath))

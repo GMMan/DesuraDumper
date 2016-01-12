@@ -16,11 +16,13 @@ namespace DesuraDumper
         public CookieContainer CookieContainer { get; set; }
         public Uri Uri { get; set; }
         public string Accept { get; set; }
+		public bool KeepAlive { get; set; }
 
         public CookieAwareWebClient()
             : this(new CookieContainer())
         {
             isMono = Type.GetType("Mono.Runtime") != null;
+			KeepAlive = true;
         }
 
         void MonoSetAccept()
@@ -42,6 +44,7 @@ namespace DesuraDumper
             // MONO: looks like Mono doesn't take too well to this?
             //httpRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             if (isMono) MonoSetAccept();
+			httpRequest.KeepAlive = KeepAlive;
             return httpRequest;
         }
 
