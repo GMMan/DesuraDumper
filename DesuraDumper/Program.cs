@@ -442,7 +442,7 @@ namespace DesuraDumper
 				form ["members"] = "Sign In";
 
 				wc.Headers.Add (HttpRequestHeader.ContentType, "application/x-www-form-urlencoded");
-				string result = wc.UploadString ("https://secure.desura.com/members/login", form.ToString ());
+				string result = wc.UploadString ("http://www.desura.com/members/login", form.ToString ());
 				if (result.Contains ("Login to Desura and enter a world of games to play, friends to challenge and community groups to join.")) {
 					Console.Error.WriteLine ("Login failed.");
 					return false;
