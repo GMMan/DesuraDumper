@@ -17,12 +17,14 @@ namespace DesuraDumper
         public Uri Uri { get; set; }
         public string Accept { get; set; }
 		public bool KeepAlive { get; set; }
+        public int RequestTimeout { get; set; }
 
         public CookieAwareWebClient()
             : this(new CookieContainer())
         {
             isMono = Type.GetType("Mono.Runtime") != null;
 			KeepAlive = true;
+            RequestTimeout = -1;
         }
 
         void MonoSetAccept()
@@ -45,6 +47,7 @@ namespace DesuraDumper
             //httpRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             if (isMono) MonoSetAccept();
 			httpRequest.KeepAlive = KeepAlive;
+            if (RequestTimeout > 0) httpRequest.Timeout = RequestTimeout;
             return httpRequest;
         }
 

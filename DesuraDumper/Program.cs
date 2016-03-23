@@ -17,6 +17,7 @@ namespace DesuraDumper
         public static int Retries = 5;
         public static int RetryDelay = 2000;
 		public static bool KeepAlive = true;
+        public static int RequestTimeout = 5000;
 
         public static void Main (string[] args)
 		{
@@ -154,6 +155,10 @@ namespace DesuraDumper
 			{
 				Console.WriteLine("Can't parse KeepAlive config value, using default.");
 			}
+            if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["RequestTimeout"], out RequestTimeout))
+            {
+                Console.WriteLine("Can't parse RequestTimeout config value, using default.");
+            }
 
 			try {
 				CookieAwareWebClient wc = new CookieAwareWebClient () { Encoding = Encoding.UTF8, KeepAlive = KeepAlive };
@@ -231,49 +236,60 @@ namespace DesuraDumper
 		{
 			List<string> links = new List<string> ();
 			List<string> retryLinks = new List<string>();
-			for (int i = 0; i < downloads.Count; ++i) {
-				DownloadsView view = downloads [i];
-				Console.WriteLine ("[{0}/{1}] {2}: Getting CDN links", i + 1, downloads.Count, view.Name);
+            try
+            {
+                wc.RequestTimeout = RequestTimeout;
+                for (int i = 0; i < downloads.Count; ++i)
+                {
+                    DownloadsView view = downloads[i];
+                    Console.WriteLine("[{0}/{1}] {2}: Getting CDN links", i + 1, downloads.Count, view.Name);
 
-				List<string> presentNames = new List<string> (view.Downloads.Select (v => v.Name + "\t" + v.Platform));
-				List<Tuple<string, string, string>> prodDownloads = GetDownloads (view.Slug, view.BranchId, wc);
-				foreach (Tuple<string, string, string> tuple in prodDownloads.Where(t => presentNames.Contains(t.Item1 + "\t" + t.Item2))) {
-					if (addComments)
-						links.Add (string.Format ("# {0} - {1} ({2})", view.Name, tuple.Item1, tuple.Item2));
-					try
-					{
-						links.Add (GetRedirectUrl (tuple.Item3, wc.CookieContainer));
-					}
-					catch (WebException ex)
-					{
-						Console.WriteLine("Caught exception while trying to get CDN link: {0}", ex.Message);
-						Console.WriteLine("Adding to retry list.");
-						retryLinks.Add(tuple.Item3);
-					}
-				}
-			}
+                    List<string> presentNames = new List<string>(view.Downloads.Select(v => v.Name + "\t" + v.Platform));
+                    List<Tuple<string, string, string>> prodDownloads = GetDownloads(view.Slug, view.BranchId, wc);
+                    foreach (Tuple<string, string, string> tuple in prodDownloads.Where(t => presentNames.Contains(t.Item1 + "\t" + t.Item2)))
+                    {
+                        if (addComments)
+                            links.Add(string.Format("# {0} - {1} ({2})", view.Name, tuple.Item1, tuple.Item2));
+                        try
+                        {
+                            links.Add(GetRedirectUrl(tuple.Item3, wc.CookieContainer));
+                        }
+                        catch (WebException ex)
+                        {
+                            Console.WriteLine("Caught exception while trying to get CDN link: {0}", ex.Message);
+                            Console.WriteLine("Adding to retry list.");
+                            retryLinks.Add(tuple.Item3);
+                        }
+                    }
+                }
 
-			for (int i = 0; retryLinks.Count > 0 && i < Retries; ++i)
-			{
-				Console.WriteLine("Retrying failed links ({0}/{1}) in {2} milliseconds", i + 1, Retries, RetryDelay);
-				int j = 0;
-				int linksCount = retryLinks.Count;
-				Thread.Sleep(RetryDelay);
-				retryLinks.RemoveAll(link => {
-					Console.WriteLine("[{0}/{1}]: Trying {2}", ++j, linksCount, link);
-					try
-					{
-						// No comments to add since I didn't store that...
-						links.Add(GetRedirectUrl(link, wc.CookieContainer));
-					}
-					catch (WebException ex)
-					{
-						Console.WriteLine("Caught exception while retrying to get CDN link: {0}", ex.Message);
-						return false;
-					}
-					return true;
-				});
-			}
+                for (int i = 0; retryLinks.Count > 0 && i < Retries; ++i)
+                {
+                    Console.WriteLine("Retrying failed links ({0}/{1}) in {2} milliseconds", i + 1, Retries, RetryDelay);
+                    int j = 0;
+                    int linksCount = retryLinks.Count;
+                    Thread.Sleep(RetryDelay);
+                    retryLinks.RemoveAll(link =>
+                    {
+                        Console.WriteLine("[{0}/{1}]: Trying {2}", ++j, linksCount, link);
+                        try
+                        {
+                            // No comments to add since I didn't store that...
+                            links.Add(GetRedirectUrl(link, wc.CookieContainer));
+                        }
+                        catch (WebException ex)
+                        {
+                            Console.WriteLine("Caught exception while retrying to get CDN link: {0}", ex.Message);
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+            }
+            finally
+            {
+                wc.RequestTimeout = -1;
+            }
 
 			if (retryLinks.Count > 0)
 			{
@@ -309,14 +325,24 @@ namespace DesuraDumper
 			}
 
 			List<ProductInfo> products = ProductInfo.CreateFromCollection ((JArray)coll.games);
+            CookieAwareWebClient cawc = wc as CookieAwareWebClient;
 
-			for (int i = 0; i < products.Count; ++i) {
-				ProductInfo product = products [i];
-				Console.WriteLine ("[{0}/{1}] {2}: Getting download links", i + 1, products.Count, product.Name);
-				RefreshProductWithDownloads (product, wc);
-				Console.WriteLine ("[{0}/{1}] {2}: Getting keys", i + 1, products.Count, product.Name);
-				AddKeysToProduct (product, wc);
-			}
+            try
+            {
+                if (cawc != null) cawc.RequestTimeout = RequestTimeout;
+                for (int i = 0; i < products.Count; ++i)
+                {
+                    ProductInfo product = products[i];
+                    Console.WriteLine("[{0}/{1}] {2}: Getting download links", i + 1, products.Count, product.Name);
+                    RefreshProductWithDownloads(product, wc);
+                    Console.WriteLine("[{0}/{1}] {2}: Getting keys", i + 1, products.Count, product.Name);
+                    AddKeysToProduct(product, wc);
+                }
+            }
+            finally
+            {
+                if (cawc != null) cawc.RequestTimeout = -1;
+            }
 
 			return products;
 		}
