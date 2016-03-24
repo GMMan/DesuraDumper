@@ -67,7 +67,7 @@ namespace DesuraDumper
                     {
                         // Split at equal sign
                         string[] expireParts = cookieParts[i].Split(new char[] { '=' }, 2);
-                        expireParts[1] = DateTime.Parse(expireParts[1]).ToUniversalTime().ToString("ddd, dd-MMM-yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " GMT";
+                        expireParts[1] = DateTime.Parse(expireParts[1], System.Globalization.CultureInfo.InvariantCulture).ToUniversalTime().ToString("ddd, dd-MMM-yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " GMT";
                         cookieParts[i] = string.Join("=", expireParts);
                     }
                 }
