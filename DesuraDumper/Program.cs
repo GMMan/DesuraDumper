@@ -388,6 +388,7 @@ namespace DesuraDumper
 			request.AllowAutoRedirect = false;
 			request.CookieContainer = cookies;
 			request.Method = WebRequestMethods.Http.Head;
+            if (RequestTimeout > 0) request.Timeout = RequestTimeout;
 			using (HttpWebResponse response = (HttpWebResponse)request.GetResponse ()) {
 				if (response.StatusCode == HttpStatusCode.Found || response.StatusCode == HttpStatusCode.Moved)
 					return response.Headers [HttpResponseHeader.Location];
